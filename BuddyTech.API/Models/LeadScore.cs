@@ -9,5 +9,6 @@ namespace BuddyTech.API.Models
         [Range(0, 100)]
         public int Score { get; set; }
         public DateOnly UpdatedAt { get; set; }
+        public LeadScore() { }
     }
 }

@@ -4,7 +4,7 @@ namespace BuddyTech.API.Models
 {
     public class Company
     {
-        Guid Id { get; set; }
+        public Guid Id { get; set; }
         public string Name { get; set; }
         public string CNPJ { get; set; }
         public string Email { get; set; }
@@ -12,5 +12,6 @@ namespace BuddyTech.API.Models
         public string Location { get; set; }
         public string Industry { get; set; }
         public RevenueRanges RevenueRange { get; set; }
+        public Company() { }
     }
 }

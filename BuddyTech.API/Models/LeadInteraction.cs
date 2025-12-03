@@ -12,5 +12,6 @@ namespace BuddyTech.API.Models
         public TypesOfContact TypeOfContact { get; set; }
         public string InteractionContent { get; set; }
         public DateOnly InteractionDate { get; set; }
+        public LeadInteraction() { }
     }
 }

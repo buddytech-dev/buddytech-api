@@ -5,13 +5,13 @@ namespace BuddyTech.API.Models
 {
     public class Lead
     {
-        Guid Id { get; set; }
+        public Guid Id { get; set; }
 
-        Guid SellerId { get; set; }
-        Seller Seller { get; set; }
+        public Guid SellerId { get; set; }
+        public Seller Seller { get; set; }
 
-        Guid CompanyId { get; set; }
-        Company Company { get; set; }
+        public Guid CompanyId { get; set; }
+        public Company Company { get; set; }
 
         public string Title { get; set; }
         public string Description { get; set; }
@@ -30,5 +30,6 @@ namespace BuddyTech.API.Models
         public DateOnly ExpectedCloseDate { get; set; }
         public Priorities Priority { get; set; }
         public Suggestion Suggestion { get; set; }
+        public Lead() { }
     }
 }

@@ -2,6 +2,8 @@
 {
     public class SellerMission
     {
+        public Guid Id { get; set; }
+
         public Guid SellerId { get; set; }
         public Seller Seller { get; set; }
 
@@ -11,5 +13,6 @@
         public DateTime AssignedDate { get; set; }
         public bool IsCompleted { get; set; }
         public DateTime? CompletedDate { get; set; }
+        public SellerMission() { }
     }
 }

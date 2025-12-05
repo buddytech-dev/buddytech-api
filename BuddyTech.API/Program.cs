@@ -13,7 +13,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
 // 2. Configuração dos Services (Injeção de Dependência)
 // Services principais (Lógica de Negócio e Gamificação)
-//builder.Services.AddScoped<ILeadService, LeadService>();
+builder.Services.AddScoped<ILeadService, LeadService>();
 builder.Services.AddScoped<IMissionService, MissionService>(); // Serviço de Gamificação
 builder.Services.AddScoped<ISellerService, SellerService>();
 

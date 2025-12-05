@@ -1,4 +1,4 @@
-﻿using BuddyTech.API.DTOs;
+﻿using BuddyTech.API.DTOs.Mission;
 using BuddyTech.API.Services;
 using Microsoft.AspNetCore.Mvc;
 

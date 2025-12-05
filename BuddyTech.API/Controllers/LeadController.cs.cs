@@ -164,6 +164,10 @@ namespace BuddyTech.API.Controllers
                 Title = lead.Title,
                 Status = lead.Status.ToString(),
                 CompanyName = lead.Company.Name,
+                CompanyEmail = lead.Company.Email,
+                CompanyCNPJ = lead.Company.CNPJ,
+                CompanyPhone = lead.Company.Phone,
+                CompanyRevenueRange = lead.Company.RevenueRange.ToString(),
                 CurrentScore = lead.CurrentScore?.Score ?? 0,
                 ProbabilityOfClosing = lead.ProbabilityOfClosing,
                 Priority = lead.Priority.ToString(),
@@ -181,14 +185,10 @@ namespace BuddyTech.API.Controllers
         [HttpPost("{id}/interact")]
         public async Task<IActionResult> AddInteraction(Guid id, [FromBody] LeadInteractionRequestDto dto)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
+            if (!ModelState.IsValid) return BadRequest(ModelState);
 
             try
             {
-                // Mapeia DTO para Model (LeadInteraction)
                 var interaction = new LeadInteraction
                 {
                     InteractionContent = dto.InteractionContent,
@@ -196,22 +196,32 @@ namespace BuddyTech.API.Controllers
                     InteractionDate = DateOnly.FromDateTime(DateTime.Now)
                 };
 
-                // Chama a lógica de negócio que inclui o scoring da IA
-                var updatedLead = await _leadService.AddInteractionAndRecalculateScoreAsync(id, interaction);
+                // O Lead volta RÁPIDO. A IA ainda está rodando em outra thread.
+                var updatedLead = await _leadService.AddInteractionAndDispatchAnalysisAsync(id, interaction);
 
-                // Mapeia o Lead atualizado para o DTO de Resposta
+                // Mapeia com SEGURANÇA (Null Checks)
                 return Ok(new LeadResponseDto
                 {
                     LeadId = updatedLead.Id,
                     Title = updatedLead.Title,
                     Status = updatedLead.Status.ToString(),
-                    CompanyName = updatedLead.Company.Name,
-                    CurrentScore = updatedLead.CurrentScore.Score,
+
+                    // Null check: Se Company for null, retorna string vazia
+                    CompanyName = updatedLead.Company?.Name ?? "Empresa não informada",
+
+                    // 🚨 CRÍTICO: Se CurrentScore for null (IA rodando), retorna 0
+                    CurrentScore = updatedLead.CurrentScore?.Score ?? 0,
+
                     ProbabilityOfClosing = updatedLead.ProbabilityOfClosing,
                     Priority = updatedLead.Priority.ToString(),
-                    NextStepSuggestion = updatedLead.Suggestion.Notes,
-                    SuggestedContactType = updatedLead.Suggestion.InteractionSuggested.TypeOfContact.ToString(),
-                    InteractionsCount = updatedLead.Interactions.Count,
+
+                    // 🚨 CRÍTICO: Se Suggestion for null, avisa o front
+                    NextStepSuggestion = updatedLead.Suggestion?.Notes ?? "A IA está analisando...",
+
+                    // 🚨 CRÍTICO: Navegação segura profunda
+                    SuggestedContactType = updatedLead.Suggestion?.InteractionSuggested?.TypeOfContact.ToString() ?? "Aguardando...",
+
+                    InteractionsCount = updatedLead.Interactions?.Count ?? 0,
                     ExpectedCloseDate = updatedLead.ExpectedCloseDate
                 });
             }
@@ -221,8 +231,7 @@ namespace BuddyTech.API.Controllers
             }
             catch (Exception ex)
             {
-                // Logar o erro (ex: falha de comunicação com a IA)
-                return StatusCode(500, $"Erro interno ao processar a interação: {ex.Message}");
+                return StatusCode(500, $"Erro interno: {ex.Message}");
             }
         }
         [HttpPut("{id}")]

@@ -35,25 +35,35 @@ namespace BuddyTech.API.Infra
                 .HasForeignKey<Lead>(l => l.CurrentScoreId) 
                 .IsRequired(false);
 
+            // Suggestion -> InteractionSuggested (required, cascade)
+            modelBuilder.Entity<Suggestion>()
+                .HasOne(s => s.InteractionSuggested)
+                .WithMany()
+                .HasForeignKey(s => s.InteractionSuggestedId)
+                .IsRequired()
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Suggestion <-> Lead as optional on Suggestion side and cascade on delete of Lead
             modelBuilder.Entity<Lead>()
                 .HasOne(l => l.Suggestion)
-                .WithOne(s => s.Lead) 
-                .HasForeignKey<Suggestion>(s => s.LeadId) 
-                .IsRequired(false);
+                .WithOne(s => s.Lead)
+                .HasForeignKey<Suggestion>(s => s.LeadId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.Cascade);
 
+            // LeadInteraction -> Lead (required, cascade when a Lead is deleted)
             modelBuilder.Entity<LeadInteraction>()
                 .HasOne(i => i.Lead)
                 .WithMany(l => l.Interactions)
                 .HasForeignKey(i => i.LeadId)
-                .IsRequired();
+                .IsRequired()
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<SellerMission>()
                 .HasKey(sm => new { sm.SellerId, sm.MissionId });
 
-            foreach (var relationship in modelBuilder.Model.GetEntityTypes().SelectMany(e => e.GetForeignKeys()))
-            {
-                relationship.DeleteBehavior = DeleteBehavior.Restrict;
-            }
+            // IMPORTANT: Do not apply a blanket DeleteBehavior override here.
+            // Configure delete behavior explicitly for relationships that need cascade or restrict.
         }
     }
 }

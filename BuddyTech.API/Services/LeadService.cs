@@ -117,7 +117,7 @@ namespace BuddyTech.API.Services
             }
         }
 
-        public async Task<Lead> AddInteractionAndRecalculateScoreAsync(Guid leadId, LeadInteraction interaction)
+        public async Task<Lead> AddInteractionAndDispatchAnalysisAsync(Guid leadId, LeadInteraction interaction)
         {
             var lead = await _context.Leads
                 .Include(l => l.Interactions)
@@ -130,27 +130,52 @@ namespace BuddyTech.API.Services
                 throw new KeyNotFoundException($"Lead com ID {leadId} não encontrado.");
             }
 
+            // 1) Persist the new interaction first to ensure FK constraints
             interaction.LeadId = leadId;
-            lead.Interactions.Add(interaction);
             _context.LeadInteractions.Add(interaction);
+            await _context.SaveChangesAsync();
 
+            // Refresh local collection
+            lead.Interactions ??= new List<LeadInteraction>();
+            lead.Interactions.Add(interaction);
+
+            // 2) Call AI services
             var newScore = await _scoringService.CalculateScoreAsync(lead);
             var newSuggestion = await _scoringService.GenerateSuggestionAsync(lead, newScore.Score);
 
-            lead.CurrentScore = newScore;
-
-            if (lead.ScoreHistory == null)
-            {
-                lead.ScoreHistory = new List<LeadScore>();
-            }
-            lead.ScoreHistory.Add(newScore);
+            // 3) Prepare and persist the new score
+            newScore.LeadId = leadId;
+            newScore.Lead = lead;
             _context.LeadScores.Add(newScore);
 
-            lead.Suggestion = newSuggestion;
+            // 4) If AI created a suggested interaction, persist it first and set its LeadId
+            if (newSuggestion.InteractionSuggested != null)
+            {
+                newSuggestion.InteractionSuggested.LeadId = leadId;
+                _context.LeadInteractions.Add(newSuggestion.InteractionSuggested);
+                await _context.SaveChangesAsync();
+
+                // Ensure the FK in Suggestion points to the persisted interaction
+                newSuggestion.InteractionSuggestedId = newSuggestion.InteractionSuggested.Id;
+            }
+
+            // 5) Link suggestion to lead and persist suggestion
+            newSuggestion.LeadId = leadId;
+            newSuggestion.Lead = lead;
             _context.Suggestions.Add(newSuggestion);
+
+            // 6) Update lead aggregates and persist everything
+            lead.CurrentScore = newScore;
+            lead.ScoreHistory ??= new List<LeadScore>();
+            lead.ScoreHistory.Add(newScore);
+            lead.Suggestion = newSuggestion;
 
             lead.ProbabilityOfClosing = newScore.Score / 100.0;
             lead.Priority = _scoringService.DeterminePriority(newScore.Score, lead.Interactions.Count);
+
+            // set FK ids on lead
+            lead.CurrentScoreId = newScore.Id;
+            lead.SuggestionId = newSuggestion.Id;
 
             await _context.SaveChangesAsync();
             return lead;

@@ -1,51 +1,62 @@
 ﻿using BuddyTech.API.Enums;
 using BuddyTech.API.Models;
-using System.Net.Http.Json; // Usar para métodos como PostAsJsonAsync
-using System.Text.Json; // Usar para serialização/desserialização
+using System.Text.Json.Serialization;
+using System.Net.Http.Json;
+using System.Linq;
 
 namespace BuddyTech.API.Services
 {
-    // Modelo para desserializar a resposta do serviço Python
-    // O Python deve retornar um JSON com um campo "score" e "suggestion"
-    public class AIResponseModel
-    {
-        public int Score { get; set; }
-        public string SuggestionNotes { get; set; }
-        public string SuggestedContactType { get; set; }
-    }
-
+    // 🚨 MÉTODO DE INTEGRAÇÃO COM A IA (SCORE) 🚨
     public class ScoringService : IScoringService
     {
         private readonly HttpClient _httpClient;
 
-        // HttpClient é injetado pelo .NET Core (configurado no Program.cs com AddHttpClient)
         public ScoringService(HttpClient httpClient)
         {
             _httpClient = httpClient;
         }
 
-        // 🚨 MÉTODO DE INTEGRAÇÃO COM A IA (Python) 🚨
+        // Método auxiliar para criar o DTO e evitar repetição de código
+        private LeadContextInput BuildAiPayload(Lead lead)
+        {
+            return new LeadContextInput
+            {
+                // A propriedade [JsonPropertyName("industry")] no DTO garante o nome correto no JSON
+                Industry = lead.Company?.Industry ?? "Genérico",
+
+                // Converte o Enum para int, já que o Python espera um inteiro em "revenue_range"
+                RevenueRange = (int)(lead.Company?.RevenueRange ?? 0),
+
+                // Mapeia para "current_stage"
+                CurrentStage = lead.Status.ToString(),
+
+                // Mapeia a lista de interações
+                Interactions = lead.Interactions?
+                    .OrderByDescending(i => i.InteractionDate)
+                    .Take(10) // Padronizei em 10 para dar bom contexto à IA
+                    .Select(i => new InteractionInput
+                    {
+                        Date = i.InteractionDate.ToString("yyyy-MM-dd"),
+                        Type = i.TypeOfContact.ToString(),
+                        Content = i.InteractionContent
+                    })
+                    .ToList() ?? new List<InteractionInput>()
+            };
+        }
+
         public async Task<LeadScore> CalculateScoreAsync(Lead lead)
         {
             try
             {
-                // 1. Prepara o payload para enviar ao serviço Python
-                var payload = new
-                {
-                    LeadId = lead.Id,
-                    Interactions = lead.Interactions,
-                    CompanyRevenue = lead.Company.RevenueRange.ToString(),
-                    LeadStatus = lead.Status.ToString(),
-                    // ... adicione outros dados relevantes para a IA aqui
-                };
+                // 1. Usa o DTO ao invés de objeto anônimo
+                var payload = BuildAiPayload(lead);
 
-                // 2. Chama o endpoint do serviço Python (Ex: http://localhost:8000/api/score)
-                var response = await _httpClient.PostAsJsonAsync("api/score", payload);
+                // 2. Chama o endpoint enviando o DTO tipado
+                var response = await _httpClient.PostAsJsonAsync("analyze", payload);
 
                 if (response.IsSuccessStatusCode)
                 {
-                    // 3. Lê e desserializa a resposta do Python
-                    var aiData = await response.Content.ReadFromJsonAsync<AIResponseModel>();
+                    var aiData = await response.Content.ReadFromJsonAsync<AiServiceResponse>();
 
                     if (aiData != null)
                     {
@@ -56,62 +67,112 @@ namespace BuddyTech.API.Services
                         };
                     }
                 }
-
-                // Logar o erro de resposta HTTP aqui (response.StatusCode)
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"AI Service Error ({response.StatusCode}): {errorContent}");
+                }
             }
             catch (Exception ex)
             {
-                // Logar o erro de comunicação (ex: serviço Python fora do ar)
                 Console.WriteLine($"Erro ao comunicar com a AI: {ex.Message}");
             }
 
-            // Fallback (se a AI falhar, retorna um score neutro)
+            // Fallback
             return new LeadScore { Score = 20, UpdatedAt = DateOnly.FromDateTime(DateTime.Now) };
         }
 
-        // MÉTODO MANTIDO NO C#: Determinar Prioridade (Lógica de Domínio)
-        public Priorities DeterminePriority(int score, int interactionCount)
-        {
-            if (score >= 80) return Priorities.Urgent;
-            if (score >= 50 && interactionCount > 3) return Priorities.High;
-            if (score >= 30) return Priorities.Medium;
-            return Priorities.Low;
-        }
-
-        // MÉTODO DE SUGESTÃO: Pode ser feito pela IA no Python ou aqui (manteremos a simulação simplificada aqui para o MVP)
         public async Task<Suggestion> GenerateSuggestionAsync(Lead lead, int currentScore)
         {
-            // Na implementação real com a AI, você usaria o SuggestionNotes do AIResponseModel
-            // Para o MVP, mantemos a lógica simples de simulação:
+            try
+            {
+                // 1. Usa o mesmo DTO. 
+                // Nota: O Python recalculava o score internamente, então enviamos o contexto completo novamente.
+                var payload = BuildAiPayload(lead);
 
-            string notes;
-            TypesOfContact nextContactType;
+                var response = await _httpClient.PostAsJsonAsync("analyze", payload);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var aiData = await response.Content.ReadFromJsonAsync<AiServiceResponse>();
+
+                    if (aiData != null)
+                    {
+                        var contactType = (TypesOfContact)aiData.NextStepType;
+
+                        return new Suggestion
+                        {
+                            Id = Guid.NewGuid(),
+                            Notes = $"[IA Score: {aiData.Score}]: {aiData.Notes}",
+                            InteractionSuggested = new LeadInteraction
+                            {
+                                TypeOfContact = contactType,
+                                InteractionContent = aiData.Notes,
+                                InteractionDate = DateOnly.FromDateTime(DateTime.Now.AddDays(2))
+                            }
+                        };
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[IA ERROR] Falha ao conectar na API Python: {ex.Message}");
+            }
+
+            // FALLBACK (Mantido igual)
+            string fallbackNotes;
+            TypesOfContact fallbackType;
 
             if (currentScore >= 80)
             {
-                notes = "O lead está altamente engajado! Sugira o fechamento ou envio do contrato final. Contate o decisor.";
-                nextContactType = TypesOfContact.Meeting;
+                fallbackNotes = "O lead está altamente engajado! Sugira o fechamento.";
+                fallbackType = TypesOfContact.Meeting;
             }
             else if (currentScore >= 50)
             {
-                notes = "Foco em qualificação. Tente marcar uma reunião de descoberta para entender as dores e apresentar a solução.";
-                nextContactType = TypesOfContact.PhoneCall;
+                fallbackNotes = "Foco em qualificação. Tente marcar uma reunião.";
+                fallbackType = TypesOfContact.PhoneCall;
             }
             else
             {
-                notes = "Lead frio. Sugira um e-mail de nutrição com um caso de sucesso relevante para a indústria dele.";
-                nextContactType = TypesOfContact.Email;
+                fallbackNotes = "Lead frio. Sugira um e-mail de nutrição.";
+                fallbackType = TypesOfContact.Email;
             }
 
             return new Suggestion
             {
-                Notes = $"AI Suggestion ({currentScore}%): {notes}",
+                Id = Guid.NewGuid(),
+                Notes = $"[Simulação]: {fallbackNotes}",
                 InteractionSuggested = new LeadInteraction
                 {
-                    TypeOfContact = nextContactType,
-                    InteractionContent = notes
+                    TypeOfContact = fallbackType,
+                    InteractionContent = fallbackNotes,
+                    InteractionDate = DateOnly.FromDateTime(DateTime.Now.AddDays(3))
                 }
             };
+        }
+
+        public Priorities DeterminePriority(int score, int interactionCount)
+        {
+
+            if (score >= 80) return Priorities.Urgent;
+            if (score >= 50 && interactionCount > 3) return Priorities.High;
+            if (score >= 30) return Priorities.Medium;
+
+            return Priorities.Low;
+        }
+
+        // CLASSE AUXILIAR DO JSON DE RESPOSTA (Mantive aqui, mas poderia ir para DTOs também)
+        public class AiServiceResponse
+        {
+            [JsonPropertyName("score")]
+            public int Score { get; set; }
+
+            [JsonPropertyName("notes")]
+            public string Notes { get; set; }
+
+            [JsonPropertyName("next_step_type")]
+            public int NextStepType { get; set; }
         }
     }
 }

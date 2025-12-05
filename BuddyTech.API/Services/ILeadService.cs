@@ -10,6 +10,7 @@ namespace BuddyTech.API.Services
         Task<Lead> CreateLeadAsync(Lead newLead);
         Task<Lead> UpdateLeadAsync(Lead updatedLead);
         Task DeleteLeadAsync(Guid id);
-        Task<Lead> AddInteractionAndRecalculateScoreAsync(Guid leadId, LeadInteraction interaction);
+        Task<Lead> AddInteractionAndDispatchAnalysisAsync(Guid leadId, LeadInteraction interaction);
+
     }
 }

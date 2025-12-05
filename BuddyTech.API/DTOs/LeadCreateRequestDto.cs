@@ -8,12 +8,16 @@ namespace BuddyTech.API.DTOs
         [Required]
         public Guid SellerId { get; set; }
 
-        // Dados da Companhia (opcionalmente, você pode criar um CompanyCreateDto)
-        [Required]
-        public string CompanyName { get; set; }
-        public string CompanyEmail { get; set; }
-        public string Industry { get; set; }
-        public RevenueRanges RevenueRange { get; set; }
+        public Guid? CompanyId { get; set; }
+
+        public string? CompanyName { get; set; }
+        public string? CompanyCNPJ { get; set; }
+        public string? CompanyEmail { get; set; }
+        public string? CompanyPhone { get; set; }
+        public string? CompanyLocation { get; set; }
+        public string? CompanyLogo { get; set; }
+        public string? Industry { get; set; }
+        public RevenueRanges? RevenueRange { get; set; }
 
         [Required]
         public string Title { get; set; }

@@ -30,34 +30,66 @@ namespace BuddyTech.API.Controllers
                 return BadRequest(ModelState);
             }
 
-            // 1. Mapear DTO para Model (Usaríamos AutoMapper aqui, mas faremos manualmente)
-            var newCompany = new Company
-            {
-                Name = dto.CompanyName,
-                Email = dto.CompanyEmail,
-                Industry = dto.Industry,
-                RevenueRange = dto.RevenueRange,
-                Id = Guid.NewGuid() // Garante ID
-            };
-
+            // Mapeamento Manual Inteligente
             var newLead = new Lead
             {
                 Title = dto.Title,
                 Description = dto.Description,
                 LeadSource = dto.LeadSource,
                 SellerId = dto.SellerId,
-                Company = newCompany,
                 CreatedAt = DateOnly.FromDateTime(DateTime.Now),
-                Status = Enums.LeadStatus.New,
-                // A prioridade inicial e o score serão definidos pelo Service/IA
+                Status = Enums.LeadStatus.New
             };
 
-            var createdLead = await _leadService.CreateLeadAsync(newLead);
+            // Lógica de Decisão: Empresa Existente vs Nova
+            if (dto.CompanyId.HasValue && dto.CompanyId.Value != Guid.Empty)
+            {
+                // CENÁRIO 1: Empresa Existente
+                newLead.CompanyId = dto.CompanyId.Value;
+                newLead.Company = null; // Garante que não vai tentar criar nada
+            }
+            else
+            {
+                // CENÁRIO 2: Criar Nova Empresa
+                // Validação manual simples
+                if (string.IsNullOrEmpty(dto.CompanyName) || string.IsNullOrEmpty(dto.CompanyCNPJ))
+                {
+                    return BadRequest("Para criar uma nova empresa, 'CompanyName' e 'CompanyCNPJ' são obrigatórios.");
+                }
 
-            // 2. Aciona o Serviço de Missões após a criação do Lead
-            await _missionService.CheckMissionCompletionAsync(createdLead.SellerId, Enums.MissionTitles.FirstLeadCreated);
+                newLead.Company = new Company
+                {
+                    Id = Guid.NewGuid(),
+                    Name = dto.CompanyName,
+                    CNPJ = dto.CompanyCNPJ,
+                    Email = dto.CompanyEmail,
+                    Phone = dto.CompanyPhone ?? "Não Informado",
+                    Location = dto.CompanyLocation ?? "Localização Desconhecida",
+                    Logo = dto.CompanyLogo ?? "https://via.placeholder.com/150",
+                    Industry = dto.Industry ?? "Outros",
+                    RevenueRange = dto.RevenueRange ?? Enums.RevenueRanges.UpTo500K
+                };
+            }
 
-            return CreatedAtAction(nameof(GetLead), new { id = createdLead.Id }, createdLead);
+            try
+            {
+                var createdLead = await _leadService.CreateLeadAsync(newLead);
+
+                // Aciona gamificação
+                await _missionService.CheckMissionCompletionAsync(createdLead.SellerId, Enums.MissionTitles.FirstLeadCreated);
+
+                return CreatedAtAction(nameof(GetLead), new { id = createdLead.Id }, new { id = createdLead.Id, message = "Lead criado com sucesso" });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ex.Message); // Retorna erro amigável se o Service reclamar
+            }
+            catch (Exception ex)
+            {
+                // Logar o erro real no console para debug
+                Console.WriteLine(ex.ToString());
+                return StatusCode(500, "Erro interno ao criar Lead.");
+            }
         }
 
         // GET /api/Lead/seller/{sellerId}

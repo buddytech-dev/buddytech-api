@@ -37,21 +37,51 @@ namespace BuddyTech.API.Services
 
         public async Task<Lead> CreateLeadAsync(Lead newLead)
         {
-            if (newLead.CurrentScore == null)
+            if (newLead.CompanyId != Guid.Empty && newLead.Company != null)
             {
-                var initialScore = await _scoringService.CalculateScoreAsync(newLead);
-                var initialSuggestion = await _scoringService.GenerateSuggestionAsync(newLead, initialScore.Score);
-
-                newLead.CurrentScore = initialScore;
-                newLead.Suggestion = initialSuggestion;
-                newLead.ProbabilityOfClosing = initialScore.Score / 100.0;
-                newLead.Priority = _scoringService.DeterminePriority(initialScore.Score, 0);
-
-                newLead.ScoreHistory = new List<LeadScore> { initialScore };
+                newLead.Company = null;
             }
+            else if (newLead.CompanyId == Guid.Empty && (newLead.Company == null || string.IsNullOrEmpty(newLead.Company.CNPJ)))
+            {
+                throw new InvalidOperationException("É necessário informar um CompanyId existente ou os dados completos de uma nova Company.");
+            }
+            newLead.CurrentScore = null;
+            newLead.Suggestion = null;
+            newLead.ScoreHistory = null;
 
             _context.Leads.Add(newLead);
+            await _context.SaveChangesAsync(); 
+
+            var initialScore = await _scoringService.CalculateScoreAsync(newLead);
+            var initialSuggestion = await _scoringService.GenerateSuggestionAsync(newLead, initialScore.Score);
+
+            initialScore.LeadId = newLead.Id;
+            initialScore.Lead = newLead;
+
+            initialSuggestion.LeadId = newLead.Id;
+            initialSuggestion.Lead = newLead;
+
+            if (initialSuggestion.InteractionSuggested != null)
+            {
+                initialSuggestion.InteractionSuggested.LeadId = newLead.Id;
+            }
+
+            _context.LeadScores.Add(initialScore);
+            _context.Suggestions.Add(initialSuggestion);
             await _context.SaveChangesAsync();
+
+            newLead.ProbabilityOfClosing = initialScore.Score / 100.0;
+            newLead.Priority = _scoringService.DeterminePriority(initialScore.Score, 0);
+
+            newLead.CurrentScoreId = initialScore.Id;
+            newLead.SuggestionId = initialSuggestion.Id;
+
+            newLead.CurrentScore = initialScore;
+            newLead.Suggestion = initialSuggestion;
+            newLead.ScoreHistory = new List<LeadScore> { initialScore };
+
+            await _context.SaveChangesAsync();
+
             return newLead;
         }
         public async Task<Lead> UpdateLeadAsync(Lead updatedLead)

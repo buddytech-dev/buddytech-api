@@ -1,4 +1,4 @@
-﻿namespace BuddyTech.API.DTOs
+﻿namespace BuddyTech.API.DTOs.Mission
 {
     public class MissionResponseDto
     {

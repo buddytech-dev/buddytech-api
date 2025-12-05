@@ -1,4 +1,4 @@
-﻿namespace BuddyTech.API.DTOs
+﻿namespace BuddyTech.API.DTOs.Seller
     {
         public class SellerResponseDto
         {

@@ -1,6 +1,6 @@
 ﻿using BuddyTech.API.Enums;
 
-namespace BuddyTech.API.DTOs
+namespace BuddyTech.API.DTOs.Leads
 {
     public class LeadResponseDto
     {

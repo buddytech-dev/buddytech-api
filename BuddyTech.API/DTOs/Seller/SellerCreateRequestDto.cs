@@ -1,7 +1,7 @@
 ﻿using BuddyTech.API.Enums;
 using System.ComponentModel.DataAnnotations;
 
-namespace BuddyTech.API.DTOs
+namespace BuddyTech.API.DTOs.Seller
 {
     public class SellerCreateRequestDto
     {

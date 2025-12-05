@@ -3,6 +3,7 @@ using BuddyTech.API.DTOs.Leads;
 using BuddyTech.API.Models;
 using BuddyTech.API.Services;
 using Microsoft.AspNetCore.Mvc;
+using BuddyTech.API.Enums;
 
 namespace BuddyTech.API.Controllers
 {
@@ -102,11 +103,18 @@ namespace BuddyTech.API.Controllers
                 LeadId = l.Id,
                 Title = l.Title,
                 Status = l.Status.ToString(),
-                CompanyName = l.Company.Name,
+                CompanyName = l.Company?.Name ?? "Empresa não informada",
+                CompanyEmail = l.Company?.Email ?? string.Empty,
+                CompanyCNPJ = l.Company?.CNPJ ?? string.Empty,
+                CompanyRevenueRange = l.Company != null ? ((RevenueRanges)l.Company.RevenueRange).ToString() : string.Empty,
+                CompanyPhone = l.Company?.Phone ?? string.Empty,
+                Industry = l.Company?.Industry ?? string.Empty,
+                SellerName = l.Seller?.Name ?? string.Empty,
                 CurrentScore = l.CurrentScore?.Score ?? 0,
                 ProbabilityOfClosing = l.ProbabilityOfClosing,
                 Priority = l.Priority.ToString(),
                 NextStepSuggestion = l.Suggestion?.Notes ?? "Nenhuma sugestão ainda.",
+                SuggestedContactType = l.Suggestion?.InteractionSuggested?.TypeOfContact.ToString() ?? "N/A",
                 InteractionsCount = l.Interactions?.Count ?? 0,
                 ExpectedCloseDate = l.ExpectedCloseDate
             }).ToList();

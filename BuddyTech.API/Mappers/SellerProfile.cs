@@ -18,6 +18,8 @@ namespace BuddyTech.API.Mappers
                 .ForMember(dest => dest.MissionsCompletedCount,
                            opt => opt.MapFrom(src => src.Missions.Count(sm => sm.IsCompleted)));
             // Nota: Isso requer que a coleção Missions esteja carregada (Include)
+            CreateMap<Seller, SellerResponseDto>()
+               .ForMember(dest => dest.SellerId, opt => opt.MapFrom(src => src.Id));
         }
     }
 }

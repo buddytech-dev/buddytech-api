@@ -10,8 +10,9 @@ namespace BuddyTech.API.Models
         public string Email { get; set; }
         public string Password { get; set; }
         public string PhoneNumber { get; set; }
+        public int CurrentPoints { get; set; }
         public Roles Role { get; set; }
-        public ICollection<Lead> Leads { get; set; }
+        public ICollection<Lead>? Leads { get; set; }
         public ICollection<SellerMission> Missions { get; set; }
         public Seller() { }
     }

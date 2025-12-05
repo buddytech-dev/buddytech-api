@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BuddyTech.API.Services
 {
-    public class LeadService : ILeadService
+    public class LeadService
     {
         private readonly ApplicationDbContext _context;
         private readonly IScoringService _scoringService; // Dependência da IA

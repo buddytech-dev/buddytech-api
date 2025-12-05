@@ -4,6 +4,7 @@ namespace BuddyTech.API.Services
 {
     public interface ILeadService
     {
+        Task<IEnumerable<Lead>> GetAllLeadsAsync();
         Task<Lead> GetLeadByIdAsync(Guid id);
         Task<IEnumerable<Lead>> GetLeadsBySellerIdAsync(Guid sellerId);
         Task<Lead> CreateLeadAsync(Lead newLead);

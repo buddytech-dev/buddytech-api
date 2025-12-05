@@ -92,6 +92,25 @@ namespace BuddyTech.API.Controllers
             }
         }
 
+        [HttpGet]
+        public async Task<IActionResult> GetAllLeads()
+        {
+            var leads = await _leadService.GetAllLeadsAsync();
+            var response = leads.Select(l => new LeadResponseDto
+            {
+                LeadId = l.Id,
+                Title = l.Title,
+                Status = l.Status.ToString(),
+                CompanyName = l.Company.Name,
+                CurrentScore = l.CurrentScore?.Score ?? 0,
+                ProbabilityOfClosing = l.ProbabilityOfClosing,
+                Priority = l.Priority.ToString(),
+                NextStepSuggestion = l.Suggestion?.Notes ?? "Nenhuma sugestão ainda.",
+                InteractionsCount = l.Interactions?.Count ?? 0,
+                ExpectedCloseDate = l.ExpectedCloseDate
+            }).ToList();
+            return Ok(response);
+        }
         // GET /api/Lead/seller/{sellerId}
         /// <summary>
         /// Obtém todos os Leads de um vendedor, ordenados por Prioridade e Score (Painel de Priorização).

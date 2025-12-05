@@ -15,6 +15,14 @@ namespace BuddyTech.API.Services
             _scoringService = scoringService;
         }
 
+        public async Task<IEnumerable<Lead>> GetAllLeadsAsync()
+        {
+            return await _context.Leads
+                .Include(l => l.CurrentScore)
+                .Include(l => l.Suggestion)
+                .Include(l => l.Company)
+                .ToListAsync();
+        }
         public async Task<IEnumerable<Lead>> GetLeadsBySellerIdAsync(Guid sellerId)
         {
             return await _context.Leads

@@ -1,38 +1,37 @@
+// Program.cs (CORRIGIDO E COMPLETO)
 using BuddyTech.API.Infra;
 using BuddyTech.API.Services;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// AutoMapper
 builder.Services.AddAutoMapper(typeof(Program).Assembly);
 
-// 1. Configuração do DbContext
+// DbContext
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(connectionString));
 
-// 2. Configuração dos Services (Injeção de Dependência)
-// Services principais (Lógica de Negócio e Gamificação)
-//builder.Services.AddScoped<ILeadService, LeadService>();
-builder.Services.AddScoped<IMissionService, MissionService>(); // Serviço de Gamificação
+// REGISTRO DE TODOS OS SERVIÇOS (ESSA PARTE ESTAVA FALTANDO!)
+builder.Services.AddScoped<ILeadService, LeadService>();
+builder.Services.AddScoped<IMissionService, MissionService>();
 builder.Services.AddScoped<ISellerService, SellerService>();
+builder.Services.AddScoped<IScoringService, ScoringService>();
 
-// Integração com a IA (Serviço Python no repositório buddytech-ai-service)
-// O AddHttpClient registra o IScoringService e injeta um HttpClient configurado.
+// HttpClient para chamar a IA Python
 builder.Services.AddHttpClient<IScoringService, ScoringService>(client =>
 {
-    // A URL base é lida do appsettings.json
     client.BaseAddress = new Uri(builder.Configuration["AIServiceUrl"] ?? "http://localhost:8000");
 });
 
-// 3. Configuração do HTTP Pipeline
+// Controllers + Swagger
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// Configure o pipeline de requisições HTTP.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -40,9 +39,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
 app.UseAuthorization();
-
 app.MapControllers();
 
 app.Run();

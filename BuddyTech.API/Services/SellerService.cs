@@ -1,4 +1,4 @@
-﻿using BuddyTech.API.DTOs;
+﻿using BuddyTech.API.DTOs.Seller;
 using BuddyTech.API.Infra;
 using BuddyTech.API.Models;
 using Microsoft.EntityFrameworkCore;

@@ -1,4 +1,5 @@
 ﻿using BuddyTech.API.DTOs;
+using BuddyTech.API.DTOs.Leads;
 using BuddyTech.API.Models;
 using BuddyTech.API.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -222,6 +223,65 @@ namespace BuddyTech.API.Controllers
             {
                 // Logar o erro (ex: falha de comunicação com a IA)
                 return StatusCode(500, $"Erro interno ao processar a interação: {ex.Message}");
+            }
+        }
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateLead(Guid id, [FromBody] LeadUpdateRequestDto dto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+            var existingLead = await _leadService.GetLeadByIdAsync(id);
+            if (existingLead == null)
+            {
+                return NotFound($"Lead com ID {id} não encontrado para atualização.");
+            }
+            // Atualiza os campos permitidos
+            existingLead.Title = dto.Title ?? existingLead.Title;
+            existingLead.Description = dto.Description ?? existingLead.Description;
+            existingLead.Status = dto.Status.HasValue ? dto.Status.Value : existingLead.Status;
+            try
+            {
+                var updatedLead = await _leadService.UpdateLeadAsync(existingLead);
+                return Ok(new LeadResponseDto
+                {
+                    LeadId = updatedLead.Id,
+                    Title = updatedLead.Title,
+                    Status = updatedLead.Status.ToString(),
+                    CompanyName = updatedLead.Company.Name,
+                    CurrentScore = updatedLead.CurrentScore?.Score ?? 0,
+                    ProbabilityOfClosing = updatedLead.ProbabilityOfClosing,
+                    Priority = updatedLead.Priority.ToString(),
+                    NextStepSuggestion = updatedLead.Suggestion?.Notes ?? "Nenhuma sugestão ainda.",
+                    InteractionsCount = updatedLead.Interactions?.Count ?? 0,
+                    ExpectedCloseDate = updatedLead.ExpectedCloseDate
+                });
+            }
+            catch (Exception ex)
+            {
+                // Logar o erro real no console para debug
+                Console.WriteLine(ex.ToString());
+                return StatusCode(500, "Erro interno ao atualizar Lead.");
+            }
+        }
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteLead(Guid id)
+        {
+            var existingLead = await _leadService.GetLeadByIdAsync(id);
+            if (existingLead == null)
+            {
+                return NotFound($"Lead com ID {id} não encontrado para exclusão.");
+            }
+            try
+            {
+                await _leadService.DeleteLeadAsync(id);
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+                return StatusCode(500, "Erro interno ao excluir Lead.");
             }
         }
     }

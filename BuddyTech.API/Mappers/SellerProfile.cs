@@ -1,5 +1,5 @@
 ﻿using AutoMapper;
-using BuddyTech.API.DTOs;
+using BuddyTech.API.DTOs.Seller;
 using BuddyTech.API.Models;
 
 namespace BuddyTech.API.Mappers

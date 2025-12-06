@@ -3,6 +3,7 @@ using System;
 using BuddyTech.API.Infra;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BuddyTech.API.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251204142838_AddCurrentPointsToSeller")]
+    partial class AddCurrentPointsToSeller
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -41,10 +44,6 @@ namespace BuddyTech.API.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("Location")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Logo")
                         .IsRequired()
                         .HasColumnType("text");
 
@@ -79,7 +78,7 @@ namespace BuddyTech.API.Migrations
                     b.Property<DateOnly>("CreatedAt")
                         .HasColumnType("date");
 
-                    b.Property<Guid?>("CurrentScoreId")
+                    b.Property<Guid>("CurrentScoreId")
                         .HasColumnType("uuid");
 
                     b.Property<string>("Description")
@@ -105,7 +104,7 @@ namespace BuddyTech.API.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
-                    b.Property<Guid?>("SuggestionId")
+                    b.Property<Guid>("SuggestionId")
                         .HasColumnType("uuid");
 
                     b.Property<string>("Title")
@@ -119,10 +118,11 @@ namespace BuddyTech.API.Migrations
 
                     b.HasIndex("CompanyId");
 
-                    b.HasIndex("CurrentScoreId")
-                        .IsUnique();
+                    b.HasIndex("CurrentScoreId");
 
                     b.HasIndex("SellerId");
+
+                    b.HasIndex("SuggestionId");
 
                     b.ToTable("Leads");
                 });
@@ -159,7 +159,7 @@ namespace BuddyTech.API.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<Guid>("LeadId")
+                    b.Property<Guid?>("LeadId")
                         .HasColumnType("uuid");
 
                     b.Property<int>("Score")
@@ -230,10 +230,8 @@ namespace BuddyTech.API.Migrations
 
             modelBuilder.Entity("BuddyTech.API.Models.SellerMission", b =>
                 {
-                    b.Property<Guid>("SellerId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("MissionId")
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("AssignedDate")
@@ -242,15 +240,20 @@ namespace BuddyTech.API.Migrations
                     b.Property<DateTime?>("CompletedDate")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
-
                     b.Property<bool>("IsCompleted")
                         .HasColumnType("boolean");
 
-                    b.HasKey("SellerId", "MissionId");
+                    b.Property<Guid>("MissionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SellerId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
 
                     b.HasIndex("MissionId");
+
+                    b.HasIndex("SellerId");
 
                     b.ToTable("SellerMissions");
                 });
@@ -264,9 +267,6 @@ namespace BuddyTech.API.Migrations
                     b.Property<Guid>("InteractionSuggestedId")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid?>("LeadId")
-                        .HasColumnType("uuid");
-
                     b.Property<string>("Notes")
                         .IsRequired()
                         .HasColumnType("text");
@@ -274,9 +274,6 @@ namespace BuddyTech.API.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("InteractionSuggestedId");
-
-                    b.HasIndex("LeadId")
-                        .IsUnique();
 
                     b.ToTable("Suggestions");
                 });
@@ -290,13 +287,20 @@ namespace BuddyTech.API.Migrations
                         .IsRequired();
 
                     b.HasOne("BuddyTech.API.Models.LeadScore", "CurrentScore")
-                        .WithOne()
-                        .HasForeignKey("BuddyTech.API.Models.Lead", "CurrentScoreId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .WithMany()
+                        .HasForeignKey("CurrentScoreId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.HasOne("BuddyTech.API.Models.Seller", "Seller")
                         .WithMany("Leads")
                         .HasForeignKey("SellerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("BuddyTech.API.Models.Suggestion", "Suggestion")
+                        .WithMany()
+                        .HasForeignKey("SuggestionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -305,6 +309,8 @@ namespace BuddyTech.API.Migrations
                     b.Navigation("CurrentScore");
 
                     b.Navigation("Seller");
+
+                    b.Navigation("Suggestion");
                 });
 
             modelBuilder.Entity("BuddyTech.API.Models.LeadInteraction", b =>
@@ -320,13 +326,9 @@ namespace BuddyTech.API.Migrations
 
             modelBuilder.Entity("BuddyTech.API.Models.LeadScore", b =>
                 {
-                    b.HasOne("BuddyTech.API.Models.Lead", "Lead")
+                    b.HasOne("BuddyTech.API.Models.Lead", null)
                         .WithMany("ScoreHistory")
-                        .HasForeignKey("LeadId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Lead");
+                        .HasForeignKey("LeadId");
                 });
 
             modelBuilder.Entity("BuddyTech.API.Models.SellerMission", b =>
@@ -356,14 +358,7 @@ namespace BuddyTech.API.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("BuddyTech.API.Models.Lead", "Lead")
-                        .WithOne("Suggestion")
-                        .HasForeignKey("BuddyTech.API.Models.Suggestion", "LeadId")
-                        .OnDelete(DeleteBehavior.Cascade);
-
                     b.Navigation("InteractionSuggested");
-
-                    b.Navigation("Lead");
                 });
 
             modelBuilder.Entity("BuddyTech.API.Models.Lead", b =>
@@ -371,8 +366,6 @@ namespace BuddyTech.API.Migrations
                     b.Navigation("Interactions");
 
                     b.Navigation("ScoreHistory");
-
-                    b.Navigation("Suggestion");
                 });
 
             modelBuilder.Entity("BuddyTech.API.Models.Seller", b =>

@@ -24,12 +24,15 @@ namespace BuddyTech.API.Models
         public ICollection<LeadInteraction> Interactions { get; set; }
         
         // Serão preenchidos pela IA
-        public LeadScore CurrentScore { get; set; }
-        public ICollection<LeadScore> ScoreHistory { get; set; }
+        public LeadScore? CurrentScore { get; set; }
+        public Guid? CurrentScoreId { get; set; }
+
+        public ICollection<LeadScore>? ScoreHistory { get; set; }
         public double ProbabilityOfClosing { get; set; }
         public DateOnly ExpectedCloseDate { get; set; }
         public Priorities Priority { get; set; }
-        public Suggestion Suggestion { get; set; }
+        public Guid? SuggestionId { get; set; }
+        public Suggestion? Suggestion { get; set; }
         public Lead() { }
     }
 }

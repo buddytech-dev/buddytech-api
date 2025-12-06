@@ -3,6 +3,7 @@ using System;
 using BuddyTech.API.Infra;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BuddyTech.API.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251205052143_AdicionarRelacionamentoSuggestion")]
+    partial class AdicionarRelacionamentoSuggestion
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -264,7 +267,7 @@ namespace BuddyTech.API.Migrations
                     b.Property<Guid>("InteractionSuggestedId")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid?>("LeadId")
+                    b.Property<Guid>("LeadId")
                         .HasColumnType("uuid");
 
                     b.Property<string>("Notes")
@@ -286,7 +289,7 @@ namespace BuddyTech.API.Migrations
                     b.HasOne("BuddyTech.API.Models.Company", "Company")
                         .WithMany()
                         .HasForeignKey("CompanyId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("BuddyTech.API.Models.LeadScore", "CurrentScore")
@@ -297,7 +300,7 @@ namespace BuddyTech.API.Migrations
                     b.HasOne("BuddyTech.API.Models.Seller", "Seller")
                         .WithMany("Leads")
                         .HasForeignKey("SellerId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Company");
@@ -312,7 +315,7 @@ namespace BuddyTech.API.Migrations
                     b.HasOne("BuddyTech.API.Models.Lead", "Lead")
                         .WithMany("Interactions")
                         .HasForeignKey("LeadId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Lead");
@@ -323,7 +326,7 @@ namespace BuddyTech.API.Migrations
                     b.HasOne("BuddyTech.API.Models.Lead", "Lead")
                         .WithMany("ScoreHistory")
                         .HasForeignKey("LeadId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Lead");
@@ -334,13 +337,13 @@ namespace BuddyTech.API.Migrations
                     b.HasOne("BuddyTech.API.Models.Mission", "Mission")
                         .WithMany()
                         .HasForeignKey("MissionId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("BuddyTech.API.Models.Seller", "Seller")
                         .WithMany("Missions")
                         .HasForeignKey("SellerId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Mission");
@@ -353,13 +356,13 @@ namespace BuddyTech.API.Migrations
                     b.HasOne("BuddyTech.API.Models.LeadInteraction", "InteractionSuggested")
                         .WithMany()
                         .HasForeignKey("InteractionSuggestedId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("BuddyTech.API.Models.Lead", "Lead")
                         .WithOne("Suggestion")
                         .HasForeignKey("BuddyTech.API.Models.Suggestion", "LeadId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("InteractionSuggested");
 
